@@ -10,3 +10,10 @@ cd pdu
 python setup.py install --user
 ```
 
+# Configuration
+
+In the first run you must specify the location of your config file:
+```
+pdy.py --config ~/yoursysadminrepo/pdu.ini
+```
+

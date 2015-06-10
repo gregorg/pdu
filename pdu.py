@@ -320,15 +320,20 @@ if __name__ == '__main__':
 	config = ConfigParser.ConfigParser()
 	configfile = os.path.expanduser(CONFIG_FILE)
 	if args.config:
-		if os.path.exists(os.path.abspath(args.config)):
-			logger.debug("%s => %s", os.path.abspath(os.path.expanduser(args.config)), configfile)
+		if not os.path.exists(os.path.abspath(args.config)):
+			logger.warning("Create an empty config file")
 			try:
-				os.unlink(configfile)
-			except: pass
-			os.symlink(os.path.abspath(args.config), configfile)
-			configfile = os.path.abspath(os.path.expanduser(args.config))
-		else:
-			logger.critical("'%s' doesn't exists.", args.config, exc_info=True)
+				with open(os.path.abspath(os.path.expanduser(args.config)), 'w') as inifile:
+					inifile.write()
+					inifile.close()
+			except:
+				logger.critical("Unable to write to '%s'", args.config, exc_info=True)
+		logger.debug("%s => %s", os.path.abspath(os.path.expanduser(args.config)), configfile)
+		try:
+			os.unlink(configfile)
+		except: pass
+		os.symlink(os.path.abspath(args.config), configfile)
+		configfile = os.path.abspath(os.path.expanduser(args.config))
 
 	logger.debug("Read config file: %s", configfile)
 	config.read(configfile)
