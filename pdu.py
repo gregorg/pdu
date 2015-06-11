@@ -9,6 +9,7 @@ import ConfigParser
 import argparse
 from termcolor import colored
 import sys
+import copy
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.proto import rfc1902
 
@@ -68,6 +69,7 @@ class Pdu():
 		self.config = config
 		self.logger = logging.getLogger('pdu')
 		self.outlets = {}
+		self.cnf_outlets = {}
 		self.amps = 0.0
 		self._id = None
 		self.infos = {}
@@ -84,6 +86,7 @@ class Pdu():
 			if config.has_section(self._ip):
 				for item in config.items(self._ip):
 					outlet = Outlet(self.getOutletId(item[0]))
+					outlet.setName(self.getOutletName(item[0]))
 					outlet.setStatus(item[1])
 					self.outlets[outlet.getId()] = outlet
 
@@ -158,9 +161,17 @@ class Pdu():
 
 
 	def getOutletId(self, outlet):
+		if type(outlet) == type(0):
+			return outlet
+
 		(outlet_id, outlet_name) = outlet.split('.')
 		(prefix, oid) = outlet_id.split('_')
 		return int(oid)
+
+
+	def getOutletName(self, outlet):
+		(outlet_id, outlet_name) = outlet.split('.')
+		return outlet_name
 
 
 	def setId(self):
@@ -222,7 +233,7 @@ class Pdu():
 		if type(value) == type(1):
 			value = rfc1902.Integer(value)
 		elif type(value) == type(""):
-			value = rfc1902.ObjectName(value)
+			value = rfc1902.OctetString(value)
 		# else: give directly the good RFC1902 type 
 
 		errorIndication, errorStatus, errorIndex, varBinds = cmdgen.CommandGenerator().setCmd(
@@ -263,16 +274,15 @@ class Pdu():
 
 
 	def power(self, action, outlet):
-		self.logger.info("%s : %s => %s", action.capitalize(), self._ip, outlet)
-		if action == "power-on":
+		if action in ("power-on", "ON"):
 			statusid = 1
-		elif action == "power-off":
+		elif action in ("power-off", "OFF"):
 			statusid = 2
 		elif action == "reboot":
 			statusid = 3
 		else:
-			self.logger.critical("unknown action: %s", action)
-			raise Exception("unknown action: %s"%action)
+			self.logger.critical("unknown action: '%s'", action)
+			raise Exception("unknown action: '%s'"%action)
 
 		try:
 			oid = self.getOutletId(outlet)
@@ -280,8 +290,39 @@ class Pdu():
 			oid = None
 			logging.error("Unable to found outlet ID for '%s' string, it must be 'outlet_5.something'", outlet)
 
+		self.logger.info("%s : %s => %s", action.capitalize(), self._ip, self.getOutlet(outlet))
+
 		if oid and statusid:
 			self.snmpset(".1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.%d" % oid, statusid)
+
+
+	def applyConfig(self, ask=True):
+		if not self.cnf_outlets:
+			# backup outlets from config
+			self.cnf_outlets = copy.deepcopy(self.outlets)
+
+		if ask: # already fetched
+			self.fetchNames()
+			self.fetchStatus()
+
+		something_to_do = False
+		for outlet_id in self.cnf_outlets.keys():
+			if self.cnf_outlets[outlet_id].getStatus() != self.outlets[outlet_id].getStatus():
+				something_to_do = True
+				self.logger.warning("Outlet %s is %s and will be set to %s", self.outlets[outlet_id].getName(), self.outlets[outlet_id].getStatus(), self.cnf_outlets[outlet_id].getStatus())
+				if not ask:
+					self.power(self.cnf_outlets[outlet_id].getStatus(), outlet_id)
+			if self.cnf_outlets[outlet_id].getName() != self.outlets[outlet_id].getName():
+				something_to_do = True
+				self.logger.warning("Outlet %s will be renamed to %s", self.outlets[outlet_id].getName(), self.cnf_outlets[outlet_id].getName())
+				if not ask:
+					self.snmpset(".1.3.6.1.4.1.318.1.1.12.3.4.1.1.2.%d" % outlet_id, self.cnf_outlets[outlet_id].getName())
+		
+		if ask and something_to_do:
+			answer = raw_input(colored("DO IT ? [yes|NO] ", "white", attrs=['bold']))
+			self.logger.info("Replied: '%s'", answer.upper())
+			if answer.upper() in ("Y", "YES"):
+				self.applyConfig(ask=False)
 
 
 
@@ -304,6 +345,7 @@ if __name__ == '__main__':
 	parser.add_argument('--debug', action='store_true', help='debug')
 	parser.add_argument('--pdu', action='store', help='PDU id or IP address')
 	parser.add_argument('--save', action='store_true', help='Save PDU informations to config file')
+	parser.add_argument('--read', action='store_true', help='Read config file and push config to PDUs')
 	parser.add_argument('--info', action='store_true', help='Display PDU informations')
 	parser.add_argument('--amps', action='store_true', help='Display current charging per pdu')
 	parser.add_argument('--on', action='store', help='Power ON this server')
@@ -395,6 +437,19 @@ if __name__ == '__main__':
 					pdu = Pdu(config, pduip)
 					for outlet in outlets[pduip]:
 						pdu.power(action, outlet)
+
+				if args.on or args.off:
+					time.sleep(4)
+					pdu.fetchStatus()
+					pdu.save()
+
 		else:
 			print colored("Server '%s' not found"%server, 'yellow', 'on_red')
+
+	elif args.read:
+		if args.pdu:
+			Pdu(config, args.pdu).applyConfig()
+		else:
+			for ip in config.sections():
+				Pdu(config, ip).applyConfig()
 
