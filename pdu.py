@@ -444,7 +444,7 @@ if __name__ == '__main__':
 				if args.on or args.off:
 					time.sleep(4)
 					pdu.fetchStatus()
-					pdu.save()
+					pdu.save(configfile)
 
 		else:
 			print colored("Server '%s' not found"%server, 'yellow', 'on_red')
