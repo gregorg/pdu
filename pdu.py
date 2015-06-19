@@ -157,7 +157,10 @@ class Pdu():
 	def getOutlet(self, outlet):
 		if not self.outlets.has_key(outlet):
 			self.fetchStatus()
-		return self.outlets[outlet]
+		try:
+			return self.outlets[outlet]
+		except KeyError:
+			return self.outlets[self.getOutletId(outlet)]
 
 
 	def getOutletId(self, outlet):
