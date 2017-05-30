@@ -7,7 +7,8 @@ Manage APC PDUs
 ```
 git clone git@github.com:gregorg/pdu.git
 cd pdu
-python setup.py install --user
+pip install --user -r requirements.txt
+(fallback: python setup.py install --user)
 ```
 
 # Configuration
