@@ -209,8 +209,8 @@ class Pdu():
 			oid
 		)
 		if errorIndication:
-			self.logger.critical(self._ip + ": " + str(errorIndication))
-			raise SnmpException(errorIndication)
+                    self.logger.critical("%s: %s", self._ip, str(errorIndication))
+		    raise SnmpException(errorIndication)
 		else:
 			if errorStatus:
 				self.logger.critical('%s at %s' % (
@@ -393,7 +393,7 @@ if __name__ == '__main__':
 		pdu.fetchAndSave(configfile)
 
 	elif args.amps:
-		 for pduip in config.sections():
+		for pduip in config.sections():
 			pdu = Pdu(config, pduip)
 			try:
 				#pdu.fetchNames()
@@ -405,9 +405,9 @@ if __name__ == '__main__':
 		pdu.fetchInfos()
 		pdu.fetchNames()
 		pdu.fetchStatus()
-		print pdu
+		print(pdu)
 		for outlet in pdu.outlets.values():
-			print outlet
+			print(outlet)
 			
 	elif args.on or args.off or args.reboot:
 		server = args.on or args.off or args.reboot
@@ -432,7 +432,7 @@ if __name__ == '__main__':
 						ostatus = colored(olet.getStatus(), 'red', attrs=['bold'])
 					msg += colored("- %s => %s is "%(o, oname), "magenta", attrs=['bold'])
 					msg += ostatus + "\n"
-			print msg
+			print(msg)
 			answer = raw_input(colored("If you want to ", "white", attrs=['bold']) + colored(action.upper(), "red", attrs=['bold']) + colored(", type ", "white", attrs=['bold']) + colored("YES", "green", attrs=['bold']) + colored(" : ", "white", attrs=['bold']))
 			logger.debug("Response: '%s'", answer)
 			if answer.upper() == 'YES':
@@ -447,7 +447,7 @@ if __name__ == '__main__':
 					pdu.save(configfile)
 
 		else:
-			print colored("Server '%s' not found"%server, 'yellow', 'on_red')
+			print(colored("Server '%s' not found"%server, 'yellow', 'on_red'))
 
 	elif args.read:
 		if args.pdu:
