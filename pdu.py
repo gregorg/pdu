@@ -253,7 +253,7 @@ class Pdu():
             self.config.set(self._ip, "outlet_%d.%s"%(outlet.getId(), outlet.getName()), outlet.getStatus())
 
         try:
-            with open(outfile, "wb") as configfile:
+            with open(outfile, "w") as configfile:
                 self.config.write(configfile)
                 self.logger.info("Config successfully saved to %s", outfile)
         except:
