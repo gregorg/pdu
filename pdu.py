@@ -334,7 +334,7 @@ class Pdu():
 #
 # MAIN
 #
-if __name__ == '__main__':
+def main():
     # setup logging
     logger = logging.getLogger('pdu')
     logger.setLevel(logging.DEBUG)
