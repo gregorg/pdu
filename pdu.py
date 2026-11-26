@@ -40,10 +40,7 @@ class Outlet():
         return self._id
 
     def setStatus(self, s):
-        if s == 1 or s == "ON":
-            self.status = 1
-        else:
-            self.status = 0
+        self.status = int(s == 1 or s == "ON")
 
 
     def isEnabled(self):
@@ -54,8 +51,7 @@ class Outlet():
             return "ON"
         elif self.status is None:
             return "UNKNOWN"
-        else:
-            return "OFF"
+        return "OFF"
 
     def __str__(self):
         return "Outlet #%s => %s is %s"%(self._id, self.name, self.getStatus())
@@ -356,10 +352,7 @@ def main():
     parser.add_argument('--reboot', action='store', help='REBOOT this server')
     args = parser.parse_args()
 
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-    else:
-        logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
     
     # config
     config = ConfigParser()
